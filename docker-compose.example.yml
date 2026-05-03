@@ -1,0 +1,24 @@
+services:
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat
+    ports:
+      - "3001:3001"
+      - "6099:6099"
+    environment:
+      - NAPCAT_UID=0
+      - NAPCAT_GID=0
+      - ACCOUNT=你的机器人QQ号
+    volumes:
+      - ./config/onebot11.json:/app/napcat/config/onebot11.json
+      - ./relay.py:/app/relay.py
+      - ./entrypoint-wrapper.sh:/app/entrypoint-wrapper.sh
+      - ./napcat_data:/app/data
+      - ./qq_data:/app/.config/QQ
+    dns:
+      - 114.114.114.114
+      - 8.8.8.8
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    entrypoint: ["bash", "/app/entrypoint-wrapper.sh"]
