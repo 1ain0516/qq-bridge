@@ -1,5 +1,5 @@
 # QQ Bot Bridge
-
+（一位普通的大学生兴趣使然和大模型一起做的有关于Claude code qq robot的小拙作，希望能帮助到别人，也更希望会有人提出问题来改进）
 通过 **NapCat + Claude Code** 实现与 QQ 聊天——你在 QQ 上发消息，Claude Code 用完整能力回复。
 
 ## 架构
