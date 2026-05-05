@@ -27,7 +27,16 @@ NapCat(QQ网关, OneBot11协议) --WebSocket--> qq_daemon.py --写入--> queue.j
 4. **智能处理消息**:
    - 单条消息 → 直接回复
    - 多条消息 → 自行判断：同一话题则整合成一条综合回复，不同话题则逐条回复
-   - 消息可能包含 `files` 字段（图片/文件已下载到本地），直接读取并用完整能力（搜索、分析等）处理
+   - 消息可能包含 `files` 字段（图片/文件已下载到本地）：
+     - **图片处理**：对 `type: "image"` 的文件，先调用视觉代理识别：
+       ```bash
+       PORT=$(cat ~/claude-webui/.port 2>/dev/null || echo 8088)
+       curl -s -X POST "http://localhost:$PORT/vision/describe" \
+         -F "file=@<图片路径>" \
+         -F "prompt=请详细描述这张图片"
+       ```
+       返回 `{"description": "..."}`，把描述文字作为上下文处理
+     - **普通文件**：直接读取并用完整能力（搜索、分析等）处理
 
 5. 通过 `"/c/Program Files/Python314/python" ~/qq-bridge/qq_send.py "内容"` 发送回复
 
