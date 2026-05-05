@@ -87,7 +87,7 @@ start_daemon.bat
 }
 ```
 
-然后在 Claude Code 中输入 `claude code robot` 进入 QQ 机器人模式，或使用 `/loop 1m claude code robot` 自动轮询。
+然后在 Claude Code 中输入 `/qq-robot` 进入 QQ 机器人模式，或使用 `/loop 1m /qq-robot` 自动轮询。
 
 ## 图片识别
 

@@ -14,49 +14,10 @@ NapCat(QQ网关, OneBot11协议) --WebSocket--> qq_daemon.py --写入--> queue.j
 
 ## 技能：QQ机器人模式
 
-当用户输入 **"claude code robot"** 时，进入QQ机器人消息处理模式：
+QQ机器人消息处理已集成为 **`/qq-robot`** 技能。
 
-0. 先确保服务在运行：执行 `cmd /c "~/qq-bridge/start_daemon.bat"` 启动 NapCat Docker + daemon（幂等安全）
-
-1. **读取上下文**: 如果 `~/qq-bridge/napcat_data/conversation_context.md` 存在，先读取它以获取对话连续性（正在讨论的话题、用户偏好、待办事项等）
-
-2. **读取新消息**: 运行 `"/c/Program Files/Python314/python" ~/qq-bridge/qq_read_queue.py` 获取未处理的新消息（游标追踪，无竞态）
-
-3. 如果队列为空，不做任何操作（不输出任何文字），**跳到步骤 8**
-
-4. **智能处理消息**:
-   - 单条消息 → 直接回复
-   - 多条消息 → 自行判断：同一话题则整合成一条综合回复，不同话题则逐条回复
-   - 消息可能包含 `files` 字段（图片/文件已下载到本地）：
-     - **图片处理**：对 `type: "image"` 的文件，先调用视觉代理识别：
-       ```bash
-       PORT=$(cat ~/claude-webui/.port 2>/dev/null || echo 8088)
-       curl -s -X POST "http://localhost:$PORT/vision/describe" \
-         -F "file=@<图片路径>" \
-         -F "prompt=请详细描述这张图片"
-       ```
-       返回 `{"description": "..."}`，把描述文字作为上下文处理
-     - **普通文件**：直接读取并用完整能力（搜索、分析等）处理
-
-5. 通过 `"/c/Program Files/Python314/python" ~/qq-bridge/qq_send.py "内容"` 发送回复
-
-6. **更新上下文**: 写入/更新 `~/qq-bridge/napcat_data/conversation_context.md`，保持紧凑（不超过2KB）：
-   - 当前进行的话题
-   - 用户提到的重要信息或偏好
-   - 待办或承诺过的事项
-   - 格式示例：
-     ```
-     # QQ Bot Context
-     Last active: 2026-05-03 14:00
-     ## Topics
-     - 正在讨论项目优化
-     ## Info
-     - 用户偏好简洁回复
-     ```
-
-7. 清空 `latest_msg.txt`
-
-8. 不做任何其他操作（不输出文字、不发送空消息）
+- 手动执行：输入 `/qq-robot`
+- 自动轮询：`/loop 1m /qq-robot`
 
 ## 文件路径
 
