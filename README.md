@@ -11,7 +11,11 @@
                     +----------+       +-----------+            |
                          ^                                     |
                          |                              Claude Code 读取
-                         |                              并生成回复
+                         |                              ┌────┴────┐
+                         |                              │ 图片 →  │
+                         |                              │ vision  │
+                         |                              │ 代理识别 │
+                         |                              └─────────┘
                          |                                     |
                          |                              +----------+
                          +──HTTP /send_msg <─────────────── | qq_send.py |
@@ -19,9 +23,10 @@
 ```
 
 - **NapCat** (Docker)：QQ 协议网关，通过 OneBot11 标准接口与 QQ 通信
-- **qq_daemon.py**：守护进程，WebSocket 实时接收消息，写入文件队列
-- **Claude Code**：读取队列，用完整 AI 能力生成回复，通过 `qq_send.py` 发送
+- **qq_daemon.py**：守护进程，WebSocket 实时接收消息，下载图片/文件，写入队列
+- **Claude Code**：读取队列，用完整 AI 能力生成回复；图片先通过视觉代理识别再处理
 - **qq_send.py**：HTTP 调用 NapCat API 发送消息
+- **Vision Proxy**（可选）：配合 `claude-webui` 的 `/vision/describe` 接口，让纯文本模型也能理解图片
 
 ## 前置条件
 
@@ -84,26 +89,46 @@ start_daemon.bat
 
 然后在 Claude Code 中输入 `claude code robot` 进入 QQ 机器人模式，或使用 `/loop 1m claude code robot` 自动轮询。
 
+## 图片识别
+
+机器人支持自动识别图片消息。当收到图片时：
+
+1. 图片自动下载到 `napcat_data/downloads/`
+2. Claude Code 调 `claude-webui` 的 `/vision/describe` 接口识别图片
+3. 识别结果作为上下文交给主模型处理
+
+需要配合 [claude-webui](https://github.com/1ain0516/claude-webui) 使用（视觉代理基于 DashScope qwen3.6-flash）。
+
 ## 文件结构
 
 ```
 qq-bridge/
-├── qq_daemon.py            # 守护进程（WebSocket 接收消息）
-├── qq_send.py              # 发送消息脚本（HTTP 调用 NapCat API）
-├── qq_send.sh              # qq_send.py 的 bash 快捷包装
-├── start_daemon.bat        # Windows 开机自启脚本
-├── relay.py                # Docker 容器内 WebSocket 中继（备用）
-├── entrypoint-wrapper.sh   # Docker 入口包装
-├── docker-compose.yml      # NapCat Docker 配置（含 QQ 号）
+├── CLAUDE.md                # Claude Code 行为指令（QQ 机器人模式）
+├── qq_daemon.py             # 守护进程（WebSocket 接收消息）
+├── qq_send.py               # 发送消息脚本（HTTP 调用 NapCat API）
+├── qq_send.sh               # qq_send.py 的 bash 快捷包装
+├── qq_read_queue.py         # 游标式队列读取（无竞态）
+├── qq_receive.py            # 简易队列读取（可选）
+├── qq_health.py             # 一键健康检查
+├── start_daemon.bat         # Windows 开机自启脚本
+├── check_daemon.sh          # Linux daemon 自愈脚本
+├── relay.py                 # Docker 容器内 WebSocket 中继（备用）
+├── relay.mjs                # Docker 容器内 HTTP 中继（备用）
+├── entrypoint-wrapper.sh    # Docker 入口包装（启动 relay.py）
+├── docker-compose.yml       # NapCat Docker 配置（含 QQ 号）
 ├── docker-compose.example.yml  # Docker 示例配置（占位 QQ 号）
+├── local_config.py          # 本地配置（TARGET_QQ 等）
+├── local_config.example.py  # 配置示例
 ├── config/
-│   └── onebot11.json       # NapCat 配置
-├── napcat_data/            # 运行时数据（被 gitignore）
-│   ├── queue.jsonl         # 消息队列
-│   ├── daemon.log          # 守护进程日志
-│   ├── daemon.pid          # 单例锁文件
-│   ├── download/           # 图片/文件下载目录
-│   └── events.jsonl        # 原始事件日志
+│   └── onebot11.json        # NapCat 配置
+├── napcat_data/             # 运行时数据（被 gitignore）
+│   ├── queue.jsonl          # 消息队列
+│   ├── cursor.txt           # 游标文件（已处理偏移量）
+│   ├── conversation_context.md  # 对话上下文摘要
+│   ├── daemon.log           # 守护进程日志
+│   ├── daemon.pid           # 单例锁文件
+│   ├── downloads/           # 图片/文件下载目录
+│   └── events.jsonl         # 原始事件日志
 └── .gitignore
 ```
 
